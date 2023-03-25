@@ -9,29 +9,24 @@ html(lang="en")
     script(src="https://cdn.quilljs.com/1.3.6/quill.js")
     script.
       const socket = io(); 
-      let RoomId = "#{RoomName}";
+      let RoomId = 12;
       joinRoom(RoomId)
       
       const quill = new Quill('#editor', {
         theme: 'snow'
       });
-
-      document.querySelector('#editor .ql-editor').addEventListener('keyup', function() {
-        var editorValue = document.querySelector('#editor .ql-editor').innerHTML;
-        console.log(editorValue);
-        onInputChange(editorValue)
+      
+      quill.on('text-change', function() {
+        const content = quill.getText();
+        onInputChange(content)
       });
-
 
       function onInputChange(inputVal) {
         socket.emit("textChange", {inputVal,RoomId});
       }
 
       socket.on('UpdateText', (data) => {
-        console.log(data);
-        var editorValue = editorElement.innerHTML;
-        document.querySelector('#editor').setAttribute(data, editorValue);
-        //quill.setText(data);
+        quill.setContents(data);
       });
 
       function joinRoom(roomId) {
