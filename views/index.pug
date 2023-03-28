@@ -29,8 +29,7 @@ html(lang="en")
 
       socket.on('UpdateText', (data) => {
         console.log(data);
-        var editorValue = editorElement.innerHTML;
-        document.querySelector('#editor').setAttribute(data, editorValue);
+        quill.pasteHTML(data)
         //quill.setText(data);
       });
 
