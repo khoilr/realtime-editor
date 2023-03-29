@@ -21,8 +21,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/", indexRouter);
+const RoomData = [{ RoomName: "hjhadjada" }];
+
 app.use("/users", usersRouter);
+app.use("/", indexRouter(RoomData));
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -60,6 +62,8 @@ io.on("connection", (socket) => {
 
   socket.on("textChange", (dataRC) => {
     const { inputVal, RoomId } = dataRC;
+    RoomData[RoomId] = inputVal;
+    console.log(RoomData[RoomId]);
     console.log("text From room " + RoomId + ":" + inputVal);
     socket.to(RoomId).emit("UpdateText", inputVal);
   });
