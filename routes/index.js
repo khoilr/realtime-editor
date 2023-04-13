@@ -1,22 +1,10 @@
-var express = require("express");
-var router = express.Router();
+var express = require('express')
+var router = express.Router()
+const { authorization } = require('../services/auth')
 
-module.exports = (RoomData) => {
-  /* GET home page. */
-  router.get("/:RoomName", function (req, res, next) {
-    console.log("Router", RoomData[req.params.RoomName]);
-    if (RoomData[req.params.RoomName] != null) {
-      res.render("index", {
-        RoomName: req.params.RoomName,
-        RoomData: RoomData[req.params.RoomName].toString()
-      });
-    } else {
-      res.render("index", {
-        RoomName: req.params.RoomName,
-        RoomData: ""
-      });
-    }
-  });
+router.get('/', authorization, async function (req, res, next) {
+    const user = req?.user?.name
+    res.render('index', { user })
+})
 
-  return router;
-};
+module.exports = router

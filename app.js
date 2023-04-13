@@ -1,70 +1,106 @@
-const createError = require("http-errors");
-const express = require("express");
-const path = require("path");
-const cookieParser = require("cookie-parser");
-const logger = require("morgan");
-const socket = require("socket.io");
+const createError = require('http-errors')
+const express = require('express')
+const path = require('path')
+const cookieParser = require('cookie-parser')
+const logger = require('morgan')
+const socketio = require('socket.io')
+const { createAdapter } = require('@socket.io/redis-adapter')
+const { createClient } = require('redis')
+const session = require('express-session')
+const sharedSession = require('express-socket.io-session')
+require('dotenv').config()
 
-const indexRouter = require("./routes/index");
-const usersRouter = require("./routes/users");
-const { resourceUsage } = require("process");
-
-const app = express();
+const app = express()
 
 // view engine setup
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "pug");
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'pug')
 
-app.use(logger("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(logger('dev'))
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
 
-const RoomData = [{ RoomName: "hjhadjada" }];
+// start ExpressJS server
+const server = app.listen('3000', () => {
+    console.log(`Server started on http://localhost:3000`)
+})
 
-app.use("/users", usersRouter);
-app.use("/", indexRouter(RoomData));
+// init socket.io
+const io = socketio(server)
+
+const pubClient = createClient({ host: 'localhost', port: 6379 })
+const subClient = pubClient.duplicate()
+
+pubClient
+    .connect()
+    .then(() => {
+        console.log('Redis client connected')
+    })
+    .catch((err) => {
+        console.log('Redis client connection error: ', err)
+    })
+subClient
+    .connect()
+    .then(() => {
+        console.log('Redis client connected')
+    })
+    .catch((err) => {
+        console.log('Redis client connection error: ', err)
+    })
+
+// Create Express session
+const expressSession = session({
+    secret: 'secret',
+    resave: false,
+    saveUninitialized: false,
+})
+io.use(sharedSession(expressSession))
+
+io.adapter(createAdapter(pubClient, subClient))
+
+io.on('connection', (socket) => {
+    const session = socket.handshake.session
+    console.log(session)
+
+    console.log('A user connected')
+
+    socket.on('disconnect', () => {
+        console.log('The user disconnected')
+    })
+
+    socket.on('join-editor', (editor) => {
+        socket.join(editor)
+    })
+
+    socket.on('leave-editor', (editor) => {
+        socket.leave(editor)
+    })
+
+    socket.on('text-change', (data) => {
+        const { room, user, value } = data
+        socket.to(room).emit('update-text', { room, user, value })
+    })
+})
+
+const indexRouter = require('./routes/index')
+const editorRouter = require('./routes/editor')
+app.use('/', indexRouter)
+app.use('/editor', editorRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
-  next(createError(404));
-});
+    next(createError(404))
+})
 
 // error handler
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
+    // set locals, only providing error in development
+    res.locals.message = err.message
+    res.locals.error = req.app.get('env') === 'development' ? err : {}
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render("error");
-});
-
-const server = app.listen("3000", () => {
-  console.log(`Server started on http://localhost:3000`);
-});
-
-const io = socket(server);
-
-io.on("connection", (socket) => {
-  console.log("a user connected");
-
-  socket.on("disconnect", () => {
-    console.log("user disconnected");
-  });
-
-  socket.on("join", (roomId) => {
-    socket.join(roomId);
-    console.log("user joined at room " + roomId);
-  });
-
-  socket.on("textChange", (dataRC) => {
-    const { inputVal, RoomId } = dataRC;
-    RoomData[RoomId] = inputVal;
-    console.log(RoomData[RoomId]);
-    console.log("text From room " + RoomId + ":" + inputVal);
-    socket.to(RoomId).emit("UpdateText", inputVal);
-  });
-});
+    // render the error page
+    res.status(err.status || 500)
+    res.render('error')
+})

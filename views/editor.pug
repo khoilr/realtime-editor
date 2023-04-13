@@ -1,0 +1,33 @@
+extends layout
+block content
+	h1 Editor ID: #{room}
+	#editor
+
+	script.
+		const socket = io() 
+		const room = '#{room}'
+		const user = '#{user}'
+
+		// join room at the beginning
+		socket.emit('join-editor', room)
+		//- }
+		//- joinRoom()
+
+
+		// Quill rich text editor
+		const quill = new Quill('#editor', {
+			theme: 'snow'
+		})
+
+		socket.on('update-text', (data)=> {
+			console.log(data)
+			const {room, user, value} = data
+			quill.pasteHTML(value)
+		})
+
+		// handle #editor .ql-editor on change
+		document.querySelector('#editor .ql-editor').addEventListener('keyup', () => {
+			const value = document.querySelector('#editor .ql-editor').innerHTML
+			console.log(value)
+			socket.emit('text-change', { value, room, user })
+		});
