@@ -62,7 +62,6 @@ io.adapter(createAdapter(pubClient, subClient))
 
 io.on('connection', (socket) => {
     const session = socket.handshake.session
-    console.log(session)
 
     console.log('A user connected')
 
@@ -72,6 +71,18 @@ io.on('connection', (socket) => {
 
     socket.on('join-editor', (editor) => {
         socket.join(editor)
+        pubClient
+            .get(editor)
+            .then((reply) => {
+                if (reply) {
+                    const { room, user, value } = JSON.parse(reply)
+                    console.log(room)
+                    socket.emit('update-text', { room, user, value })
+                }
+            })
+            .catch((err) => {
+                console.log('err: ', err)
+            })
     })
 
     socket.on('leave-editor', (editor) => {
@@ -80,6 +91,7 @@ io.on('connection', (socket) => {
 
     socket.on('text-change', (data) => {
         const { room, user, value } = data
+        pubClient.set(room, JSON.stringify({ room, user, value }))
         socket.to(room).emit('update-text', { room, user, value })
     })
 })

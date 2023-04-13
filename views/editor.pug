@@ -8,11 +8,7 @@ block content
 		const room = '#{room}'
 		const user = '#{user}'
 
-		// join room at the beginning
 		socket.emit('join-editor', room)
-		//- }
-		//- joinRoom()
-
 
 		// Quill rich text editor
 		const quill = new Quill('#editor', {
