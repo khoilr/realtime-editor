@@ -16,6 +16,7 @@ const app = express()
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'pug')
 
+// middleware
 app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
@@ -30,9 +31,15 @@ const server = app.listen('3000', () => {
 // init socket.io
 const io = socketio(server)
 
-const pubClient = createClient({ host: 'localhost', port: 6379 })
+// init redis
+// const pubClient = createClient(process.env.REDIS_URL)
+const pubClient = createClient({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+})
 const subClient = pubClient.duplicate()
 
+// connect to redis
 pubClient
     .connect()
     .then(() => {
@@ -50,23 +57,28 @@ subClient
         console.log('Redis client connection error: ', err)
     })
 
+// catch redis error
 pubClient.on('error', (err) => {
     console.log(err.message)
 })
-
 subClient.on('error', (err) => {
     console.log(err.message)
 })
+
 // Create Express session
 const expressSession = session({
     secret: 'secret',
     resave: false,
     saveUninitialized: false,
 })
+
+// Use Express session
 io.use(sharedSession(expressSession))
 
+// Use Redis adapter
 io.adapter(createAdapter(pubClient, subClient))
 
+// socket.io events
 io.on('connection', (socket) => {
     const session = socket.handshake.session
 
@@ -103,6 +115,7 @@ io.on('connection', (socket) => {
     })
 })
 
+// Routes
 const indexRouter = require('./routes/index')
 const editorRouter = require('./routes/editor')
 app.use('/', indexRouter)

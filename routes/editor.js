@@ -8,7 +8,6 @@ router.post('/', (req, res) => {
     let { name, room } = req.body
 
     // create new room when undefined
-
     if (!room)
         // hash md5 current time and take first 8 characters
         room = crypto
