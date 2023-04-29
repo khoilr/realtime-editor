@@ -1,9 +1,10 @@
-var express = require("express");
-var router = express.Router();
+var express = require('express')
+var router = express.Router()
+const { authorization } = require('../services/auth')
 
-/* GET home page. */
-router.get("/:RoomName", function (req, res, next) {
-  res.render("index", { RoomName: req.params.RoomName });
-});
+router.get('/', authorization, async function (req, res, next) {
+    const user = req?.user?.name
+    res.render('index', { user })
+})
 
-module.exports = router;
+module.exports = router
