@@ -34,8 +34,7 @@ const io = socketio(server)
 // init redis
 // const pubClient = createClient(process.env.REDIS_URL)
 const pubClient = createClient({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
+    url: process.env.REDIS_URL,
 })
 const subClient = pubClient.duplicate()
 
